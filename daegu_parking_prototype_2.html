@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" id="html-root">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -19,18 +19,42 @@
     --crowd-bg: #3B1E22; --crowd-fg: #E05C6B;
     --full-bg: #3B1420;  --full-fg: #E0405C;
     --unsup-bg: #2A2D33; --unsup-fg: #9AA0AC;
+
+    --backdrop: #0b0c0e;
+    --overlay: rgba(0,0,0,0.55);
+  }
+
+  /* 라이트 모드 팔레트 — body에 .light 클래스가 붙으면 전체 변수 교체 */
+  body.light {
+    --bg: #F5F6F8;
+    --surface: #FFFFFF;
+    --surface-alt: #EEF0F3;
+    --border: #E2E4E9;
+    --text-primary: #16181C;
+    --text-secondary: #6B7280;
+    --accent: #2F6FE0;
+
+    --avail-bg: #E3F6EA; --avail-fg: #1E9A57;
+    --normal-bg: #FDF0DA; --normal-fg: #B4790C;
+    --crowd-bg: #FCE7E9; --crowd-fg: #C23A4B;
+    --full-bg: #FBDEE3;  --full-fg: #C21F3E;
+    --unsup-bg: #EEF0F3; --unsup-fg: #6B7280;
+
+    --backdrop: #DCE0E5;
+    --overlay: rgba(20,20,25,0.45);
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
   html, body {
     margin: 0;
-    background: #0b0c0e;
+    background: var(--backdrop);
     font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     color: var(--text-primary);
+    transition: background 160ms ease;
   }
 
-  /* 폰 프레임 (데스크톱에서도 모바일 프로토타입처럼 보이게) */
+  /* 폰 프레임 */
   .phone-wrap {
     min-height: 100vh;
     display: flex;
@@ -48,6 +72,7 @@
     box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px #000;
     overflow: hidden;
     position: relative;
+    transition: background 160ms ease;
   }
   @media (max-width: 420px) {
     .phone { border-radius: 0; height: 100vh; max-height: 100vh; }
@@ -76,6 +101,7 @@
     font-size: 21px;
     font-weight: 800;
     margin: 4px 0 16px;
+    padding-right: 44px; /* 설정 버튼과 겹치지 않게 */
   }
 
   .search-bar {
@@ -149,6 +175,22 @@
     border: none;
   }
   .back-btn:active { background: var(--surface-alt); }
+
+  /* 설정 버튼 (모든 화면 위에 고정) */
+  .settings-btn {
+    position: absolute;
+    top: 18px;
+    right: 16px;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    cursor: pointer;
+    z-index: 30;
+  }
+  .settings-btn:active { background: var(--surface-alt); }
 
   /* 검색 화면 */
   .search-input-wrap {
@@ -291,7 +333,7 @@
     left: 50%;
     bottom: 28px;
     transform: translateX(-50%) translateY(12px);
-    background: #2A2D33;
+    background: var(--surface-alt);
     color: var(--text-primary);
     padding: 12px 18px;
     border-radius: 12px;
@@ -301,6 +343,7 @@
     transition: opacity 180ms ease, transform 180ms ease;
     white-space: nowrap;
     z-index: 10;
+    border: 1px solid var(--border);
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -309,6 +352,83 @@
     color: var(--text-secondary);
     font-size: 12px;
     margin-top: 18px;
+  }
+
+  /* 설정 팝업 */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--overlay);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+    padding: 0 28px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-card {
+    width: 100%;
+    max-width: 300px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 22px 20px 24px;
+    animation: modalIn 160ms ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .modal-header .title { font-size: 17px; font-weight: 800; }
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .modal-close:active { background: var(--border); }
+
+  .modal-section { margin-bottom: 18px; }
+  .modal-section:last-child { margin-bottom: 0; }
+  .modal-section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin: 0 0 8px 2px;
+  }
+
+  .segmented {
+    display: flex;
+    background: var(--surface-alt);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+  }
+  .segmented button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 8px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .segmented button.active {
+    background: var(--accent);
+    color: #ffffff;
   }
 </style>
 </head>
@@ -321,12 +441,12 @@
     <section class="screen active" id="screen-home">
       <div class="safe-top"></div>
       <div class="content">
-        <h1 class="app-title">대구 주차 도우미</h1>
+        <h1 class="app-title" id="app-title"></h1>
         <div class="search-bar" onclick="goTo('search')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <span>목적지를 입력하세요</span>
+          <span id="home-search-placeholder"></span>
         </div>
-        <div class="section-label">현재 위치 주변 주차장</div>
+        <div class="section-label" id="home-section-label"></div>
         <div id="home-list"></div>
       </div>
     </section>
@@ -338,16 +458,16 @@
         <button class="back-btn" onclick="goBack()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
-        <span style="font-size:16px;font-weight:700;">목적지 검색</span>
+        <span style="font-size:16px;font-weight:700;" id="search-topbar-title"></span>
       </div>
       <div class="content">
         <div class="search-input-wrap">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input id="search-input" type="text" placeholder="건물명, 지역명으로 검색" onkeydown="if(event.key==='Enter') doSearch()" />
+          <input id="search-input" type="text" onkeydown="if(event.key==='Enter') doSearch()" />
         </div>
-        <div class="section-label" style="margin-top:20px;font-size:13px;color:var(--text-secondary);">추천 목적지</div>
+        <div class="section-label" style="margin-top:20px;font-size:13px;color:var(--text-secondary);" id="recommended-label"></div>
         <div class="chip-row" id="chip-row"></div>
-        <button class="primary-btn" onclick="doSearch()">검색</button>
+        <button class="primary-btn" id="search-submit-btn" onclick="doSearch()"></button>
       </div>
     </section>
 
@@ -362,9 +482,9 @@
       <div class="content">
         <div class="eta-row">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 18-9-4-9 4 9-18z"/></svg>
-          <span>도착 예정 14:32 (18분 후)</span>
+          <span id="eta-text"></span>
         </div>
-        <div class="place-name" id="result-place-name">동성로 상점가 부근</div>
+        <div class="place-name" id="result-place-name"></div>
         <div id="result-nearest"></div>
         <div id="result-rest"></div>
       </div>
@@ -381,52 +501,213 @@
       <div class="content" id="detail-content"></div>
     </section>
 
+    <!-- 설정 버튼 (모든 화면에서 접근 가능) -->
+    <button class="settings-btn" onclick="openSettings()" aria-label="Settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+
+    <!-- 설정 팝업 -->
+    <div class="modal-overlay" id="settings-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="title" id="settings-title"></span>
+          <button class="modal-close" onclick="closeSettings()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="modal-section">
+          <p class="modal-section-label" id="theme-section-label"></p>
+          <div class="segmented">
+            <button id="theme-btn-light" onclick="setTheme('light')"></button>
+            <button id="theme-btn-dark" onclick="setTheme('dark')"></button>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <p class="modal-section-label" id="lang-section-label"></p>
+          <div class="segmented">
+            <button id="lang-btn-ko" onclick="setLang('ko')"></button>
+            <button id="lang-btn-en" onclick="setLang('en')"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="toast" id="toast"></div>
   </div>
 </div>
 
 <script>
 // ---------------------------------------------------------------------
-// 데이터 (PRD 4장 데이터 모델 예시를 그대로 반영한 목(mock) 데이터)
+// i18n 사전
 // ---------------------------------------------------------------------
-const CONGESTION = {
-  available: '여유', normal: '보통', crowded: '혼잡', full: '만차', unsupported: '정보없음'
+const T = {
+  ko: {
+    appTitle: '대구 주차 도우미',
+    homeSearchPlaceholder: '목적지를 입력하세요',
+    homeSectionLabel: '현재 위치 주변 주차장',
+    searchTopbarTitle: '목적지 검색',
+    searchInputPlaceholder: '건물명, 지역명으로 검색',
+    recommendedLabel: '추천 목적지',
+    searchButton: '검색',
+    basicInfoTitle: '기본 정보',
+    availableTotalLabel: '여유 차석 / 전체',
+    hoursLabel: '운영시간',
+    distanceLabel: '거리',
+    feeTitle: '요금',
+    feeBasicLabel: '기본',
+    zoneTitle: '전용 구역',
+    evLabel: '전기차 충전 구역',
+    disabledLabel: '장애인 전용 구역',
+    navigateButton: '길찾기',
+    navigateToast: '외부 내비게이션 연동은 추후 구현됩니다',
+    prototypeHint: '↑ 프로토타입에서는 토스트만 표시됩니다',
+    settingsTitle: '설정',
+    themeSectionLabel: '화면 모드',
+    themeLight: '라이트 모드',
+    themeDark: '다크 모드',
+    langSectionLabel: '언어 설정',
+    langKo: '한국어',
+    langEn: 'English',
+    unitM: 'm',
+  },
+  en: {
+    appTitle: 'Daegu Parking Helper',
+    homeSearchPlaceholder: 'Enter a destination',
+    homeSectionLabel: 'Parking near current location',
+    searchTopbarTitle: 'Search destination',
+    searchInputPlaceholder: 'Search by building or area name',
+    recommendedLabel: 'Suggested destinations',
+    searchButton: 'Search',
+    basicInfoTitle: 'Basic info',
+    availableTotalLabel: 'Available / total spots',
+    hoursLabel: 'Hours',
+    distanceLabel: 'Distance',
+    feeTitle: 'Fee',
+    feeBasicLabel: 'Base',
+    zoneTitle: 'Dedicated zones',
+    evLabel: 'EV charging spots',
+    disabledLabel: 'Accessible spots',
+    navigateButton: 'Directions',
+    navigateToast: 'External navigation integration coming soon',
+    prototypeHint: '↑ This prototype only shows a toast message',
+    settingsTitle: 'Settings',
+    themeSectionLabel: 'Appearance',
+    themeLight: 'Light mode',
+    themeDark: 'Dark mode',
+    langSectionLabel: 'Language',
+    langKo: '한국어',
+    langEn: 'English',
+    unitM: 'm',
+  }
 };
 
+const CONGESTION = {
+  ko: { available: '여유', normal: '보통', crowded: '혼잡', full: '만차', unsupported: '정보없음' },
+  en: { available: 'Available', normal: 'Moderate', crowded: 'Crowded', full: 'Full', unsupported: 'Unknown' }
+};
+
+const SUGGESTIONS = ['동성로', '동대구역', '수성못', '서문시장', '약전골목'];
+
+// ---------------------------------------------------------------------
+// 상태
+// ---------------------------------------------------------------------
+const state = {
+  theme: 'dark',
+  lang: 'ko',
+  lastQuery: '동성로',
+  currentDetailId: null,
+};
+
+function t(key) { return T[state.lang][key]; }
+
+function formatMoney(amount) {
+  return state.lang === 'en'
+    ? '₩' + amount.toLocaleString('en-US')
+    : amount.toLocaleString('ko-KR') + '원';
+}
+
+function feeShortLabel(fee) {
+  return state.lang === 'en'
+    ? `First ${fee.baseMin} min ${formatMoney(fee.baseFee)}`
+    : `최초 ${fee.baseMin}분 ${formatMoney(fee.baseFee)}`;
+}
+
+function feeFullLabel(fee) {
+  return state.lang === 'en'
+    ? `First ${fee.baseMin} min ${formatMoney(fee.baseFee)} · +${formatMoney(fee.addFee)} every ${fee.addMin} min`
+    : `최초 ${fee.baseMin}분 ${formatMoney(fee.baseFee)} · 이후 ${fee.addMin}분마다 ${formatMoney(fee.addFee)}`;
+}
+
+function distancePrefixLabel(key) {
+  if (key === 'home') return state.lang === 'en' ? 'From current location' : '현재 위치에서';
+  return state.lang === 'en' ? 'From destination' : '목적지에서';
+}
+
+function walkLabel(min, m) {
+  return state.lang === 'en'
+    ? `${min} min walk · ${m}m to the right`
+    : `도보 ${min}분 · 우측 방향으로 ${m}m`;
+}
+
+function etaLabel() {
+  return state.lang === 'en' ? 'Arriving 14:32 (in 18 min)' : '도착 예정 14:32 (18분 후)';
+}
+
+function placeNameFor(query) {
+  return state.lang === 'en' ? `Near ${query}` : `${query} 상점가 부근`;
+}
+
+function syncedLabel(min) {
+  if (state.lang === 'en') {
+    return min < 60 ? `Updated ${min} min ago` : `Updated ${Math.round(min / 60)} hr ago`;
+  }
+  return min < 60 ? `최근 갱신: ${min}분 전` : `최근 갱신: ${Math.round(min / 60)}시간 전`;
+}
+
+function unsupportedRealtimeLabel() {
+  return state.lang === 'en' ? 'Realtime data unavailable · Basic info only' : '실시간 정보 미지원 · 기본 정보 제공';
+}
+
+// ---------------------------------------------------------------------
+// 데이터 (PRD 4장 데이터 모델 예시를 그대로 반영한 목(mock) 데이터)
+// syncedAgoMin: 마지막 갱신으로부터 지난 분(分) — 언어별로 "N분 전"/"N min ago"로 포맷
+// ---------------------------------------------------------------------
 function fee(baseMin, baseFee, addMin, addFee) {
-  const won = n => n.toLocaleString('ko-KR') + '원';
-  return {
-    baseMin, baseFee, addMin, addFee,
-    short: `최초 ${baseMin}분 ${won(baseFee)}`,
-    full: `최초 ${baseMin}분 ${won(baseFee)} · 이후 ${addMin}분마다 ${won(addFee)}`,
-  };
+  return { baseMin, baseFee, addMin, addFee };
 }
 
 const homeLots = [
   { id:'dgu-pub-004', name:'동성로 공영주차장', distanceM:240, available:12, total:86, congestion:'available',
-    fee: fee(30,1000,10,500), hours:'24시간', ev:4, disabled:3, synced:'3분 전' },
+    fee: fee(30,1000,10,500), hours:'24시간', ev:4, disabled:3, syncedAgoMin:3 },
   { id:'dgu-pub-011', name:'국채보상공원 주차장', distanceM:410, available:5, total:60, congestion:'normal',
-    fee: fee(30,1500,10,600), hours:'06:00 ~ 24:00', ev:2, disabled:2, synced:'6분 전' },
+    fee: fee(30,1500,10,600), hours:'06:00 ~ 24:00', ev:2, disabled:2, syncedAgoMin:6 },
   { id:'dgu-priv-021', name:'약전골목 민영주차장', distanceM:520, available:0, total:34, congestion:'crowded',
-    fee: fee(60,2000,60,2000), hours:'09:00 ~ 22:00', ev:0, disabled:1, synced:'12분 전' },
+    fee: fee(60,2000,60,2000), hours:'09:00 ~ 22:00', ev:0, disabled:1, syncedAgoMin:12 },
   { id:'dgu-priv-034', name:'중앙로 지하주차장', distanceM:680, available:3, total:120, congestion:'available',
-    fee: fee(30,1000,15,500), hours:'24시간', ev:6, disabled:4, synced:'5시간 전', realtime:false },
+    fee: fee(30,1000,15,500), hours:'24시간', ev:6, disabled:4, syncedAgoMin:300, realtime:false },
 ];
 
 const destinationLots = [
   { id:'dgu-pub-004', name:'동성로공영주차장', distanceM:120, available:18, total:86, congestion:'available',
-    fee: fee(30,1000,10,500), hours:'24시간', ev:4, disabled:3, synced:'2분 전', walkMin:2 },
+    fee: fee(30,1000,10,500), hours:'24시간', ev:4, disabled:3, syncedAgoMin:2, walkMin:2 },
   { id:'dgu-pub-011', name:'국채보상공원 주차장', distanceM:280, available:6, total:60, congestion:'normal',
-    fee: fee(30,1500,10,600), hours:'06:00 ~ 24:00', ev:2, disabled:2, synced:'6분 전' },
+    fee: fee(30,1500,10,600), hours:'06:00 ~ 24:00', ev:2, disabled:2, syncedAgoMin:6 },
   { id:'dgu-priv-021', name:'약전골목 민영주차장', distanceM:340, available:0, total:34, congestion:'crowded',
-    fee: fee(60,2000,60,2000), hours:'09:00 ~ 22:00', ev:0, disabled:1, synced:'15분 전' },
+    fee: fee(60,2000,60,2000), hours:'09:00 ~ 22:00', ev:0, disabled:1, syncedAgoMin:15 },
   { id:'dgu-priv-045', name:'서문시장 공영주차타워', distanceM:410, available:22, total:210, congestion:'available',
-    fee: fee(30,1000,10,500), hours:'24시간', ev:8, disabled:5, synced:'4분 전' },
+    fee: fee(30,1000,10,500), hours:'24시간', ev:8, disabled:5, syncedAgoMin:4 },
   { id:'dgu-priv-052', name:'중앙파출소 부설주차장', distanceM:470, available:1, total:15, congestion:'full',
-    fee: fee(60,3000,30,1000), hours:'09:00 ~ 21:00', ev:0, disabled:0, synced:'2시간 전', realtime:false },
+    fee: fee(60,3000,30,1000), hours:'09:00 ~ 21:00', ev:0, disabled:0, syncedAgoMin:120, realtime:false },
 ];
 
-const SUGGESTIONS = ['동성로', '동대구역', '수성못', '서문시장', '약전골목'];
+function findLot(id) {
+  return homeLots.find(l => l.id === id) || destinationLots.find(l => l.id === id);
+}
 
 // ---------------------------------------------------------------------
 // 화면 전환 (뒤로가기 스택 포함)
@@ -437,36 +718,30 @@ function goTo(screen, opts) {
   opts = opts || {};
   if (opts.replace) { historyStack[historyStack.length - 1] = screen; }
   else { historyStack.push(screen); }
-  render(screen, opts);
+  render(screen);
 }
 
 function goBack() {
   if (historyStack.length <= 1) return;
   historyStack.pop();
-  render(historyStack[historyStack.length - 1], {});
+  render(historyStack[historyStack.length - 1]);
 }
 
 function render(screen) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + screen).classList.add('active');
-  document.getElementById('phone').scrollTop = 0;
   const el = document.getElementById('screen-' + screen);
-  if (el) el.scrollTop = 0;
+  if (el) { el.classList.add('active'); el.scrollTop = 0; }
 }
 
-function lotCardHtml(lot, distancePrefix) {
+function lotCardHtml(lot, prefixKey) {
   return `
-    <div class="lot-card" onclick="openDetail('${lot.id}', '${distancePrefix}')">
+    <div class="lot-card" onclick="openDetail('${lot.id}')">
       <div class="lot-main">
         <p class="lot-name">${lot.name}</p>
-        <p class="lot-sub">${distancePrefix} ${lot.distanceM}m · ${lot.fee.short}</p>
+        <p class="lot-sub">${distancePrefixLabel(prefixKey)} ${lot.distanceM}${t('unitM')} · ${feeShortLabel(lot.fee)}</p>
       </div>
-      <span class="badge ${lot.congestion}">${CONGESTION[lot.congestion]}</span>
+      <span class="badge ${lot.congestion}">${CONGESTION[state.lang][lot.congestion]}</span>
     </div>`;
-}
-
-function findLot(id) {
-  return homeLots.find(l => l.id === id) || destinationLots.find(l => l.id === id);
 }
 
 // ---------------------------------------------------------------------
@@ -474,7 +749,7 @@ function findLot(id) {
 // ---------------------------------------------------------------------
 function renderHome() {
   document.getElementById('home-list').innerHTML =
-    homeLots.map(l => lotCardHtml(l, '현재 위치에서')).join('');
+    homeLots.map(l => lotCardHtml(l, 'home')).join('');
 }
 
 // ---------------------------------------------------------------------
@@ -483,13 +758,13 @@ function renderHome() {
 function renderSearchScreen() {
   document.getElementById('chip-row').innerHTML =
     SUGGESTIONS.map(s => `<span class="chip" onclick="doSearch('${s}')">${s}</span>`).join('');
-  document.getElementById('search-input').value = '';
 }
 
 function doSearch(presetQuery) {
   const query = presetQuery || document.getElementById('search-input').value.trim();
   if (!query) return;
-  document.getElementById('result-place-name').textContent = `${query} 상점가 부근`;
+  state.lastQuery = query;
+  document.getElementById('search-input').value = '';
   renderResultScreen();
   goTo('result', { replace: false });
 }
@@ -498,76 +773,82 @@ function doSearch(presetQuery) {
 // 화면 3: 검색 결과 (목업 그대로)
 // ---------------------------------------------------------------------
 function renderResultScreen() {
+  document.getElementById('eta-text').textContent = etaLabel();
+  document.getElementById('result-place-name').textContent = placeNameFor(state.lastQuery);
+
   const nearest = destinationLots[0];
   const rest = destinationLots.slice(1);
   const walkMin = nearest.walkMin || Math.ceil(nearest.distanceM / 80);
 
   document.getElementById('result-nearest').innerHTML = `
-    <div class="nearest-card" onclick="openDetail('${nearest.id}', '목적지에서')">
+    <div class="nearest-card" onclick="openDetail('${nearest.id}')">
       <div class="nearest-head">
         <div>
           <p class="lot-name">${nearest.name}</p>
-          <p class="lot-sub">목적지에서 ${nearest.distanceM}m · ${nearest.fee.short}</p>
+          <p class="lot-sub">${distancePrefixLabel('destination')} ${nearest.distanceM}${t('unitM')} · ${feeShortLabel(nearest.fee)}</p>
         </div>
-        <span class="badge ${nearest.congestion}">${CONGESTION[nearest.congestion]}</span>
+        <span class="badge ${nearest.congestion}">${CONGESTION[state.lang][nearest.congestion]}</span>
       </div>
       <div class="mini-map">
-        <div class="dot-col"><div class="dot dest"></div><span class="dot-label">목적지</span></div>
+        <div class="dot-col"><div class="dot dest"></div><span class="dot-label">${state.lang === 'en' ? 'Destination' : '목적지'}</span></div>
         <div class="dash-line"></div>
-        <div class="dot-col"><div class="dot lot"></div><span class="dot-label">주차장</span></div>
+        <div class="dot-col"><div class="dot lot"></div><span class="dot-label">${state.lang === 'en' ? 'Parking' : '주차장'}</span></div>
       </div>
       <div class="walk-row">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13" cy="4" r="2"/><path d="M15 22l-1-6-3-2 1-5-3 2-1-3 5-2 2 3h3"/></svg>
-        <span>도보 ${walkMin}분 · 우측 방향으로 ${nearest.distanceM}m</span>
+        <span>${walkLabel(walkMin, nearest.distanceM)}</span>
       </div>
     </div>`;
 
   document.getElementById('result-rest').innerHTML =
-    rest.map(l => lotCardHtml(l, '목적지에서')).join('');
+    rest.map(l => lotCardHtml(l, 'destination')).join('');
 }
 
 // ---------------------------------------------------------------------
 // 화면 4: 상세 정보
 // ---------------------------------------------------------------------
-function openDetail(id, distancePrefix) {
+function openDetail(id) {
+  state.currentDetailId = id;
+  renderDetailContent(id);
+  goTo('detail');
+}
+
+function renderDetailContent(id) {
   const lot = findLot(id);
   if (!lot) return;
-  const syncedText = lot.realtime === false
-    ? '실시간 정보 미지원 · 기본 정보 제공'
-    : `최근 갱신: ${lot.synced}`;
+  const syncedText = lot.realtime === false ? unsupportedRealtimeLabel() : syncedLabel(lot.syncedAgoMin);
 
   document.getElementById('detail-content').innerHTML = `
     <div class="detail-title-row">
       <h2>${lot.name}</h2>
-      <span class="badge ${lot.congestion}">${CONGESTION[lot.congestion]}</span>
+      <span class="badge ${lot.congestion}">${CONGESTION[state.lang][lot.congestion]}</span>
     </div>
     <div class="sync-row">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
       <span>${syncedText}</span>
     </div>
 
-    <p class="card-title">기본 정보</p>
+    <p class="card-title">${t('basicInfoTitle')}</p>
     <div class="info-card">
-      <div class="info-row"><span class="k">여유 차석 / 전체</span><span class="v">${lot.available} / ${lot.total}면</span></div>
-      <div class="info-row"><span class="k">운영시간</span><span class="v">${lot.hours}</span></div>
-      <div class="info-row"><span class="k">거리</span><span class="v">${lot.distanceM}m</span></div>
+      <div class="info-row"><span class="k">${t('availableTotalLabel')}</span><span class="v">${lot.available} / ${lot.total}${state.lang === 'en' ? ' spots' : '면'}</span></div>
+      <div class="info-row"><span class="k">${t('hoursLabel')}</span><span class="v">${lot.hours}</span></div>
+      <div class="info-row"><span class="k">${t('distanceLabel')}</span><span class="v">${lot.distanceM}${t('unitM')}</span></div>
     </div>
 
-    <p class="card-title">요금</p>
+    <p class="card-title">${t('feeTitle')}</p>
     <div class="info-card">
-      <div class="info-row"><span class="k">기본</span><span class="v" style="text-align:right;max-width:60%;">${lot.fee.full}</span></div>
+      <div class="info-row"><span class="k">${t('feeBasicLabel')}</span><span class="v" style="text-align:right;max-width:60%;">${feeFullLabel(lot.fee)}</span></div>
     </div>
 
-    <p class="card-title">전용 구역</p>
+    <p class="card-title">${t('zoneTitle')}</p>
     <div class="info-card">
-      <div class="info-row"><span class="k">전기차 충전 구역</span><span class="v">${lot.ev}면</span></div>
-      <div class="info-row"><span class="k">장애인 전용 구역</span><span class="v">${lot.disabled}면</span></div>
+      <div class="info-row"><span class="k">${t('evLabel')}</span><span class="v">${lot.ev}${state.lang === 'en' ? ' spots' : '면'}</span></div>
+      <div class="info-row"><span class="k">${t('disabledLabel')}</span><span class="v">${lot.disabled}${state.lang === 'en' ? ' spots' : '면'}</span></div>
     </div>
 
-    <button class="primary-btn" onclick="showToast('외부 내비게이션 연동은 추후 구현됩니다')">길찾기</button>
-    <p class="hint">↑ 프로토타입에서는 토스트만 표시됩니다</p>
+    <button class="primary-btn" onclick="showToast(t('navigateToast'))">${t('navigateButton')}</button>
+    <p class="hint">${t('prototypeHint')}</p>
   `;
-  goTo('detail');
 }
 
 // ---------------------------------------------------------------------
@@ -583,11 +864,81 @@ function showToast(msg) {
 }
 
 // ---------------------------------------------------------------------
+// 설정 팝업 (화면 모드 / 언어)
+// ---------------------------------------------------------------------
+function openSettings() {
+  updateSettingsUI();
+  document.getElementById('settings-overlay').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('show');
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  document.body.classList.toggle('light', theme === 'light');
+  updateSettingsUI();
+}
+
+function setLang(lang) {
+  state.lang = lang;
+  document.getElementById('html-root').setAttribute('lang', lang);
+  applyStaticTexts();
+  updateSettingsUI();
+  refreshCurrentContent();
+}
+
+function updateSettingsUI() {
+  document.getElementById('settings-title').textContent = t('settingsTitle');
+  document.getElementById('theme-section-label').textContent = t('themeSectionLabel');
+  document.getElementById('lang-section-label').textContent = t('langSectionLabel');
+
+  const themeLight = document.getElementById('theme-btn-light');
+  const themeDark = document.getElementById('theme-btn-dark');
+  themeLight.textContent = t('themeLight');
+  themeDark.textContent = t('themeDark');
+  themeLight.classList.toggle('active', state.theme === 'light');
+  themeDark.classList.toggle('active', state.theme === 'dark');
+
+  const langKo = document.getElementById('lang-btn-ko');
+  const langEn = document.getElementById('lang-btn-en');
+  langKo.textContent = t('langKo');
+  langEn.textContent = t('langEn');
+  langKo.classList.toggle('active', state.lang === 'ko');
+  langEn.classList.toggle('active', state.lang === 'en');
+}
+
+// ---------------------------------------------------------------------
+// 정적 텍스트(화면에 항상 보이는 라벨) 갱신
+// ---------------------------------------------------------------------
+function applyStaticTexts() {
+  document.getElementById('app-title').textContent = t('appTitle');
+  document.getElementById('home-search-placeholder').textContent = t('homeSearchPlaceholder');
+  document.getElementById('home-section-label').textContent = t('homeSectionLabel');
+  document.getElementById('search-topbar-title').textContent = t('searchTopbarTitle');
+  document.getElementById('search-input').placeholder = t('searchInputPlaceholder');
+  document.getElementById('recommended-label').textContent = t('recommendedLabel');
+  document.getElementById('search-submit-btn').textContent = t('searchButton');
+  document.title = t('appTitle');
+}
+
+// 언어가 바뀌었을 때, 지금 보이고 있는 화면의 동적 콘텐츠도 다시 그림
+function refreshCurrentContent() {
+  renderHome();
+  renderSearchScreen();
+  const current = historyStack[historyStack.length - 1];
+  if (current === 'result') renderResultScreen();
+  if (current === 'detail' && state.currentDetailId) renderDetailContent(state.currentDetailId);
+}
+
+// ---------------------------------------------------------------------
 // 초기화
 // ---------------------------------------------------------------------
+applyStaticTexts();
 renderHome();
 renderSearchScreen();
 renderResultScreen();
+updateSettingsUI();
 </script>
 </body>
 </html>
