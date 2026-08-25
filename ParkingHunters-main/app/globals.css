@@ -173,9 +173,9 @@ input:focus-visible,
   }
 }
 
-/* 설정 아이콘(public/icons/settings-gear-icon_84443-70437.png)은 어두운 회색으로
-   고정된 PNG라, 다크 모드 배경(--surface: #0a0a0a)에서는 거의 안 보인다 — 다크
-   모드에서만 반전시켜 밝게 보이게 한다. */
+/* 설정 아이콘(public/icons/81020.png)은 검은색으로 고정된 PNG라, 다크 모드
+   배경(--surface: #0a0a0a)에서는 거의 안 보인다 — 다크 모드에서만 반전시켜
+   밝게 보이게 한다. */
 :root[data-theme="dark"] .settings-icon {
   filter: invert(1);
 }

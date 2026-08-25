@@ -453,7 +453,7 @@ export default function Home() {
             aria-label={t.settingsAria}
           >
             <img
-              src="/icons/settings-gear-icon_84443-70437.png"
+              src="/icons/81020.png"
               alt=""
               className="settings-icon"
               style={styles.settingsIcon}
