@@ -421,11 +421,15 @@ async function loadDaeguCityParkingLots(): Promise<ParkingLot[]> {
 async function fetchPage(apiBase: string, serviceKey: string, pageNo: number): Promise<RawPage> {
   // serviceKey는 발급 시점에 이미 URL 인코딩된 값이므로 encodeURIComponent로 재인코딩하지 않는다.
   const url = `${apiBase}?serviceKey=${serviceKey}&pageNo=${pageNo}&numOfRows=${PAGE_SIZE}&type=json`;
-  const res = await fetch(url);
+  // api.data.go.kr도 대구시 API와 마찬가지로 Vercel 서버리스의 매 요청마다 바뀌는
+  // 아웃바운드 IP를 WAF에서 차단한다(HTTP 403) — 같은 FIXIE_URL 고정 IP 프록시를 태운다.
+  const res = await nodeFetch(url, { agent: daeguProxyAgent });
   if (!res.ok) {
     throw new Error(`전국주차장정보표준데이터 API 요청 실패 (HTTP ${res.status})`);
   }
-  const json = await res.json();
+  // node-fetch의 json()은 unknown을 반환한다(네이티브 fetch는 any) — fetchDaeguJson과
+  // 동일하게 이 API의 응답 형태를 강타입으로 정의해 두지 않은 기존 스타일을 유지한다.
+  const json = (await res.json()) as any;
   if (json?.header?.resultCode !== "00") {
     throw new Error(`전국주차장정보표준데이터 API 오류: ${json?.header?.resultMsg ?? "알 수 없는 오류"}`);
   }
@@ -437,28 +441,39 @@ async function fetchPage(apiBase: string, serviceKey: string, pageNo: number): P
 
 // 대구는 실시간 혼잡도까지 제공하는 대구시 API(loadDaeguCityParkingLots)로 대체했으므로,
 // 여기서는 그 API가 다루지 않는 경상북도만 표준데이터에서 가져온다.
+// 이 호출이 실패해도(키 미설정/403 등) 대구 목록은 계속 보여준다 — 경상북도 항목만 빠진다.
 async function loadGyeongbukParkingLots(): Promise<ParkingLot[]> {
   const apiBase = process.env.DATA_GO_KR_PARKING_ENDPOINT || DEFAULT_API_BASE;
   const serviceKey = process.env.DATA_GO_KR_PARKING_SERVICE_KEY;
   if (!serviceKey) {
-    throw new Error("DATA_GO_KR_PARKING_SERVICE_KEY가 설정되어 있지 않습니다.");
+    console.warn(
+      "[전국주차장정보표준데이터 API] DATA_GO_KR_PARKING_SERVICE_KEY가 설정되어 있지 않아 경상북도 항목 없이 표시합니다."
+    );
+    return [];
   }
 
-  const first = await fetchPage(apiBase, serviceKey, 1);
-  const totalPages = Math.max(1, Math.ceil(first.totalCount / PAGE_SIZE));
-  const restPages = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(apiBase, serviceKey, i + 2))
-  );
+  try {
+    const first = await fetchPage(apiBase, serviceKey, 1);
+    const totalPages = Math.max(1, Math.ceil(first.totalCount / PAGE_SIZE));
+    const restPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(apiBase, serviceKey, i + 2))
+    );
 
-  const lots: ParkingLot[] = [];
-  for (const page of [first, ...restPages]) {
-    for (const item of page.items) {
-      if (!item.insttNm?.includes("경상북도")) continue;
-      const lot = mapItem(item);
-      if (lot) lots.push(lot);
+    const lots: ParkingLot[] = [];
+    for (const page of [first, ...restPages]) {
+      for (const item of page.items) {
+        if (!item.insttNm?.includes("경상북도")) continue;
+        const lot = mapItem(item);
+        if (lot) lots.push(lot);
+      }
     }
+    return lots;
+  } catch (err) {
+    console.warn(
+      `[전국주차장정보표준데이터 API] 조회 실패 — 경상북도 항목 없이 표시합니다: ${(err as Error).message}`
+    );
+    return [];
   }
-  return lots;
 }
 
 async function getCachedLots(): Promise<ParkingLot[]> {
