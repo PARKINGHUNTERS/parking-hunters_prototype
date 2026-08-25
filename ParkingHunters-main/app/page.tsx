@@ -452,7 +452,13 @@ export default function Home() {
             onClick={() => setSettingsOpen(true)}
             aria-label={t.settingsAria}
           >
-            ⚙️
+            <img
+              src="/icons/settings-gear-icon_84443-70437.png"
+              alt=""
+              width={20}
+              height={20}
+              style={{ display: "block" }}
+            />
           </button>
         </div>
 
