@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"name": "parking-hunters_prototype",
+			"path": "../../Documents/GitHub/parking-hunters_prototype"
+		},
+		{
+			"path": "../../Desktop/TalkFile_Parking_Hunters.zip/Parking_Hunters"
+		},
+		{
+			"path": "../../Desktop/TalkFile_Parking_Hunters.zip/parking_huntersDEMO/parking_hunters_kakaomap_web_1/parking_hunters_DEMO"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true,
+		"liveServer.settings.multiRootWorkspaceName": "parking_hunters_DEMO"
+	}
+}
