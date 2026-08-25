@@ -21,6 +21,7 @@ import { useFavorites } from "./lib/favorites";
 import { CATEGORY_FILTER_KEYS, matchesCategoryFilter, type CategoryFilterKey } from "./lib/parkingFilters";
 import { useSettings } from "./lib/settings";
 import type { ParkingLot } from "./lib/types";
+import { useVoiceSearch } from "./lib/voiceSearch";
 
 type ViewMode = "map" | "list";
 
@@ -295,15 +296,14 @@ export default function Home() {
     loadNearestLots(coords);
   }
 
-  async function handleSearchSubmit(e: FormEvent) {
-    e.preventDefault();
-    const keyword = query.trim();
+  // 검색창 제출(엔터)과 음성 검색 결과가 공통으로 타는 흐름. 지명/주소 해석
+  // (Geocoder)을 상호명 검색보다 우선한다 — "해운대"는 상호명 부분일치("해운대물총
+  // 칼국수")가 아니라 "부산 해운대구"라는 실제 행정구역으로 먼저 판정되어야 한다.
+  // 그 지명이 대경권 밖이면 상호명 검색으로 넘어가지 않고 바로 안내하고 끝낸다.
+  // resolveDaegyeongSearch가 이 우선순위를 처리한다.
+  async function runSearch(keyword: string) {
     if (!keyword) return;
 
-    // 지명/주소 해석(Geocoder)을 상호명 검색보다 우선한다 — "해운대"는 상호명
-    // 부분일치("해운대물총칼국수")가 아니라 "부산 해운대구"라는 실제 행정구역으로
-    // 먼저 판정되어야 한다. 그 지명이 대경권 밖이면 상호명 검색으로 넘어가지 않고
-    // 바로 안내하고 끝낸다. resolveDaegyeongSearch가 이 우선순위를 처리한다.
     setIsLoadingLots(true);
     try {
       const outcome = await resolveDaegyeongSearch(keyword, DAEGU_SEARCH_RECT);
@@ -345,6 +345,21 @@ export default function Home() {
       setIsLoadingLots(false);
     }
   }
+
+  async function handleSearchSubmit(e: FormEvent) {
+    e.preventDefault();
+    await runSearch(query.trim());
+  }
+
+  const voiceSearch = useVoiceSearch({
+    lang: "ko-KR",
+    onResult: (transcript) => {
+      setQuery(transcript);
+      void runSearch(transcript);
+    },
+    onError: (message) => showRegionToast(message),
+    unavailableMessage: t.voiceSearchUnavailable,
+  });
 
   function openDetail(id: string) {
     setSelectedLotId(id);
@@ -426,6 +441,18 @@ export default function Home() {
               style={styles.searchInput}
               autoComplete="off"
             />
+            <button
+              type="button"
+              style={{
+                ...styles.micButton,
+                ...(voiceSearch.isListening ? styles.micButtonListening : null),
+              }}
+              onClick={voiceSearch.toggle}
+              aria-label={voiceSearch.isListening ? t.voiceSearchListeningAria : t.voiceSearchAria}
+              aria-pressed={voiceSearch.isListening}
+            >
+              🎤
+            </button>
           </form>
 
           {suggestionsOpen && suggestions.length > 0 && (
@@ -657,6 +684,7 @@ const styles: Record<string, CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 6,
   },
   brandMark: {
     width: 30,
@@ -797,6 +825,25 @@ const styles: Record<string, CSSProperties> = {
     background: "transparent",
     fontSize: 14.5,
     color: "var(--text)",
+  },
+  micButton: {
+    flexShrink: 0,
+    width: 26,
+    height: 26,
+    padding: 0,
+    border: "none",
+    background: "transparent",
+    fontSize: 15,
+    lineHeight: 1,
+    color: "var(--text-faint)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  micButtonListening: {
+    color: "var(--accent-strong)",
+    animation: "mic-pulse 1.1s ease-in-out infinite",
   },
   filterChipRow: {
     display: "flex",

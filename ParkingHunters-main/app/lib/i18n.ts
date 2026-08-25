@@ -52,6 +52,9 @@ export interface Dictionary {
   favoritesEmptyText: string;
   favoriteAddAria: string;
   favoriteRemoveAria: string;
+  voiceSearchAria: string;
+  voiceSearchListeningAria: string;
+  voiceSearchUnavailable: string;
   categoryFilterLabel: Record<CategoryFilterKey, string>;
   filterEmptyText: string;
   badgePublic: string;
@@ -117,6 +120,9 @@ const ko: Dictionary = {
   favoritesEmptyText: "즐겨찾기한 주차장이 없습니다",
   favoriteAddAria: "즐겨찾기에 추가",
   favoriteRemoveAria: "즐겨찾기에서 해제",
+  voiceSearchAria: "음성으로 검색",
+  voiceSearchListeningAria: "음성 인식 중 (다시 눌러 중지)",
+  voiceSearchUnavailable: "음성인식을 사용할 수 없습니다.",
   categoryFilterLabel: {
     all: "전체",
     free: "무료 주차",
@@ -188,6 +194,9 @@ const en: Dictionary = {
   favoritesEmptyText: "No favorite parking lots yet.",
   favoriteAddAria: "Add to favorites",
   favoriteRemoveAria: "Remove from favorites",
+  voiceSearchAria: "Search by voice",
+  voiceSearchListeningAria: "Listening (tap again to stop)",
+  voiceSearchUnavailable: "Voice search isn't available.",
   categoryFilterLabel: {
     all: "All",
     free: "Free parking",

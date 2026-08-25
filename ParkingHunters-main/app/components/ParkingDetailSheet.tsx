@@ -62,7 +62,7 @@ export default function ParkingDetailSheet({ lot, open, onClose }: ParkingDetail
           aria-label={favorite ? t.favoriteRemoveAria : t.favoriteAddAria}
           aria-pressed={favorite}
         >
-          {favorite ? "❤️" : "🤍"}
+          {favorite ? "★" : "☆"}
         </button>
         <button type="button" style={styles.closeButton} onClick={onClose} aria-label={t.closeAria}>
           ✕
@@ -216,7 +216,9 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: "50%",
     border: "none",
     background: "var(--surface-alt)",
-    fontSize: 14,
+    color: "var(--accent-strong)",
+    fontSize: 16,
+    lineHeight: 1,
     cursor: "pointer",
     zIndex: 1,
     display: "flex",
