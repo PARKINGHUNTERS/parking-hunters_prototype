@@ -452,7 +452,7 @@ export default function Home() {
             onClick={() => setSettingsOpen(true)}
             aria-label={t.settingsAria}
           >
-            ⚙️
+            <img src="/icons/images.png" alt="" className="settings-icon" style={styles.settingsIcon} />
           </button>
         </div>
 
@@ -792,6 +792,10 @@ const styles: Record<string, CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+  },
+  settingsIcon: {
+    width: 18,
+    height: 18,
   },
   searchWrap: {
     position: "relative",

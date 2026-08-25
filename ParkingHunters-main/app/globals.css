@@ -173,6 +173,12 @@ input:focus-visible,
   }
 }
 
+/* 설정 아이콘(public/icons/images.png)은 검은색으로 고정된 PNG라, 다크 모드
+   배경(--surface: #0a0a0a)에서는 거의 안 보인다 — 다크 모드에서만 반전시켜 흰색으로 보이게 한다. */
+:root[data-theme="dark"] .settings-icon {
+  filter: invert(1);
+}
+
 /* 주차장 카드 공통 인터랙션 — 인라인 style로는 :hover/:active를 표현할 수 없어 클래스로 뺐다. */
 .app-card {
   transition: transform 0.18s ease, box-shadow 0.18s ease;
