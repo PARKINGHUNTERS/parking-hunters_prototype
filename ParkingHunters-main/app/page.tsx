@@ -25,6 +25,35 @@ import { useVoiceSearch } from "./lib/voiceSearch";
 
 type ViewMode = "map" | "list";
 
+// 검색창 마이크 버튼 + 음성인식 팝업에서 공용으로 쓰는 아이콘. 이모지(🎤) 대신
+// currentColor를 따르는 SVG라, 평소/음성 인식 중 색상 전환(styles.micButtonListening)이
+// 이모지처럼 렌더러에 따라 색이 안 먹는 문제 없이 그대로 적용된다.
+function MicIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+    </svg>
+  );
+}
+
+function ClearIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.6}
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <line x1="5" y1="5" x2="19" y2="19" />
+      <line x1="19" y1="5" x2="5" y2="19" />
+    </svg>
+  );
+}
+
 // GeolocationPositionError 코드(1=권한 거부, 2=위치 확인 불가, 3=타임아웃)를 현재
 // 언어에 맞는 안내 문구로 바꾼다.
 function geoErrorMessage(code: number, t: Dictionary): string {
@@ -441,6 +470,21 @@ export default function Home() {
               style={styles.searchInput}
               autoComplete="off"
             />
+            {query.length > 0 && (
+              <button
+                type="button"
+                style={styles.clearButton}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setQuery("");
+                  setSuggestions([]);
+                  setSuggestionsOpen(false);
+                }}
+                aria-label={t.clearSearchAria}
+              >
+                <ClearIcon size={11} />
+              </button>
+            )}
             <button
               type="button"
               style={{
@@ -451,7 +495,7 @@ export default function Home() {
               aria-label={voiceSearch.isListening ? t.voiceSearchListeningAria : t.voiceSearchAria}
               aria-pressed={voiceSearch.isListening}
             >
-              🎤
+              <MicIcon size={16} />
             </button>
           </form>
 
@@ -622,7 +666,7 @@ export default function Home() {
         <div style={styles.voiceOverlay} onClick={voiceSearch.toggle}>
           <div style={styles.voiceOverlayCard} onClick={(e) => e.stopPropagation()}>
             <span style={styles.voiceOverlayIcon} aria-hidden>
-              🎤
+              <MicIcon size={34} />
             </span>
             <p style={styles.voiceOverlayText}>{t.voiceListeningMessage}</p>
           </div>
@@ -837,6 +881,20 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 14.5,
     color: "var(--text)",
   },
+  clearButton: {
+    flexShrink: 0,
+    width: 20,
+    height: 20,
+    padding: 0,
+    border: "none",
+    borderRadius: "50%",
+    background: "var(--border-soft)",
+    color: "var(--text-faint)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   micButton: {
     flexShrink: 0,
     width: 26,
@@ -880,8 +938,7 @@ const styles: Record<string, CSSProperties> = {
     textAlign: "center",
   },
   voiceOverlayIcon: {
-    fontSize: 34,
-    lineHeight: 1,
+    display: "flex",
     color: "var(--accent-strong)",
     animation: "mic-pulse 1.1s ease-in-out infinite",
   },
