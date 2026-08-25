@@ -617,6 +617,17 @@ export default function Home() {
 
       <ParkingDetailSheet lot={selectedLot} open={detailOpen} onClose={closeDetail} />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {voiceSearch.isListening && (
+        <div style={styles.voiceOverlay} onClick={voiceSearch.toggle}>
+          <div style={styles.voiceOverlayCard} onClick={(e) => e.stopPropagation()}>
+            <span style={styles.voiceOverlayIcon} aria-hidden>
+              🎤
+            </span>
+            <p style={styles.voiceOverlayText}>{t.voiceListeningMessage}</p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -844,6 +855,41 @@ const styles: Record<string, CSSProperties> = {
   micButtonListening: {
     color: "var(--accent-strong)",
     animation: "mic-pulse 1.1s ease-in-out infinite",
+  },
+  voiceOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 40,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(0, 0, 0, 0.5)",
+    padding: 20,
+  },
+  voiceOverlayCard: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 14,
+    width: "100%",
+    maxWidth: 300,
+    padding: "32px 24px",
+    borderRadius: "var(--radius-lg)",
+    background: "var(--surface)",
+    boxShadow: "0 20px 44px rgba(0, 0, 0, 0.24)",
+    textAlign: "center",
+  },
+  voiceOverlayIcon: {
+    fontSize: 34,
+    lineHeight: 1,
+    color: "var(--accent-strong)",
+    animation: "mic-pulse 1.1s ease-in-out infinite",
+  },
+  voiceOverlayText: {
+    margin: 0,
+    fontSize: 14.5,
+    fontWeight: 700,
+    color: "var(--text)",
   },
   filterChipRow: {
     display: "flex",

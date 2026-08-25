@@ -55,6 +55,7 @@ export interface Dictionary {
   voiceSearchAria: string;
   voiceSearchListeningAria: string;
   voiceSearchUnavailable: string;
+  voiceListeningMessage: string;
   categoryFilterLabel: Record<CategoryFilterKey, string>;
   filterEmptyText: string;
   badgePublic: string;
@@ -123,6 +124,7 @@ const ko: Dictionary = {
   voiceSearchAria: "음성으로 검색",
   voiceSearchListeningAria: "음성 인식 중 (다시 눌러 중지)",
   voiceSearchUnavailable: "음성인식을 사용할 수 없습니다.",
+  voiceListeningMessage: "음성인식 중입니다. 목적지를 말해주세요.",
   categoryFilterLabel: {
     all: "전체",
     free: "무료 주차",
@@ -197,6 +199,7 @@ const en: Dictionary = {
   voiceSearchAria: "Search by voice",
   voiceSearchListeningAria: "Listening (tap again to stop)",
   voiceSearchUnavailable: "Voice search isn't available.",
+  voiceListeningMessage: "Listening — say your destination.",
   categoryFilterLabel: {
     all: "All",
     free: "Free parking",
