@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="ko" id="html-root">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>대구 주차 도우미 — 클릭 프로토타입</title>
+<style>
+  :root {
+    --bg: #15161A;
+    --surface: #1E2025;
+    --surface-alt: #23262C;
+    --border: #2E313A;
+    --text-primary: #F3F4F6;
+    --text-secondary: #9AA0AC;
+    --accent: #4C8DFF;
+
+    --avail-bg: #1E3B2A; --avail-fg: #54D686;
+    --normal-bg: #3B2E14; --normal-fg: #E0A63C;
+    --crowd-bg: #3B1E22; --crowd-fg: #E05C6B;
+    --full-bg: #3B1420;  --full-fg: #E0405C;
+    --unsup-bg: #2A2D33; --unsup-fg: #9AA0AC;
+
+    --backdrop: #0b0c0e;
+    --overlay: rgba(0,0,0,0.55);
+  }
+
+  /* 라이트 모드 팔레트 — body에 .light 클래스가 붙으면 전체 변수 교체 */
+  body.light {
+    --bg: #F5F6F8;
+    --surface: #FFFFFF;
+    --surface-alt: #EEF0F3;
+    --border: #E2E4E9;
+    --text-primary: #16181C;
+    --text-secondary: #6B7280;
+    --accent: #2F6FE0;
+
+    --avail-bg: #E3F6EA; --avail-fg: #1E9A57;
+    --normal-bg: #FDF0DA; --normal-fg: #B4790C;
+    --crowd-bg: #FCE7E9; --crowd-fg: #C23A4B;
+    --full-bg: #FBDEE3;  --full-fg: #C21F3E;
+    --unsup-bg: #EEF0F3; --unsup-fg: #6B7280;
+
+    --backdrop: #DCE0E5;
+    --overlay: rgba(20,20,25,0.45);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    background: var(--backdrop);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--text-primary);
+    transition: background 160ms ease;
+  }
+
+  /* 폰 프레임 */
+  .phone-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0;
+  }
+  .phone {
+    width: 390px;
+    max-width: 100vw;
+    height: 780px;
+    max-height: 92vh;
+    background: var(--bg);
+    border-radius: 36px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px #000;
+    overflow: hidden;
+    position: relative;
+    transition: background 160ms ease;
+  }
+  @media (max-width: 420px) {
+    .phone { border-radius: 0; height: 100vh; max-height: 100vh; }
+    .phone-wrap { padding: 0; }
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+    background: var(--bg);
+    animation: slideIn 220ms ease;
+  }
+  .screen.active { display: flex; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .safe-top { height: 18px; flex: 0 0 auto; }
+  .content { padding: 0 20px 24px; flex: 1; }
+
+  h1.app-title {
+    font-size: 21px;
+    font-weight: 800;
+    margin: 4px 0 16px;
+    padding-right: 44px; /* 설정 버튼과 겹치지 않게 */
+  }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 15px;
+    user-select: none;
+  }
+  .search-bar svg { flex: 0 0 auto; opacity: .8; }
+  .search-bar:active { background: var(--surface-alt); }
+
+  .section-label {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 22px 0 12px;
+  }
+
+  .lot-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 120ms ease, transform 80ms ease;
+  }
+  .lot-card:active { background: var(--surface-alt); transform: scale(0.99); }
+  .lot-main .lot-name { font-size: 16px; font-weight: 700; margin: 0 0 6px; }
+  .lot-main .lot-sub { font-size: 13px; color: var(--text-secondary); }
+
+  .badge {
+    flex: 0 0 auto;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .badge.available { background: var(--avail-bg); color: var(--avail-fg); }
+  .badge.normal    { background: var(--normal-bg); color: var(--normal-fg); }
+  .badge.crowded   { background: var(--crowd-bg); color: var(--crowd-fg); }
+  .badge.full      { background: var(--full-bg); color: var(--full-fg); }
+  .badge.unsupported { background: var(--unsup-bg); color: var(--unsup-fg); }
+
+  /* 상단 바 (뒤로가기 + 타이틀) */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 20px 0;
+    flex: 0 0 auto;
+  }
+  .back-btn {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--text-primary);
+    background: transparent;
+    border: none;
+  }
+  .back-btn:active { background: var(--surface-alt); }
+
+  /* 설정 버튼 (모든 화면 위에 고정) */
+  .settings-btn {
+    position: absolute;
+    top: 18px;
+    right: 16px;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    cursor: pointer;
+    z-index: 30;
+  }
+  .settings-btn:active { background: var(--surface-alt); }
+
+  /* 검색 화면 */
+  .search-input-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    margin-top: 8px;
+  }
+  .search-input-wrap input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .search-input-wrap input::placeholder { color: var(--text-secondary); }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .chip {
+    background: var(--surface-alt);
+    border-radius: 20px;
+    padding: 9px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip:active { background: var(--border); }
+
+  .primary-btn {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 22px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .primary-btn:active { opacity: .85; }
+  .primary-btn[disabled] { opacity: .5; cursor: default; }
+
+  /* 검색 결과 화면 */
+  .eta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--accent);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 4px 0 6px;
+  }
+  .place-name { font-size: 22px; font-weight: 800; margin: 0 0 18px; }
+
+  .nearest-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 20px;
+    cursor: pointer;
+  }
+  .nearest-card:active { background: var(--surface-alt); }
+  .nearest-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .nearest-head .lot-name { font-size: 17px; font-weight: 800; margin: 0 0 6px; }
+  .nearest-head .lot-sub { font-size: 13px; color: var(--text-secondary); }
+
+  .mini-map {
+    margin-top: 16px;
+    height: 130px;
+    background: var(--surface-alt);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+  }
+  .mini-map .dot-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .mini-map .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .mini-map .dot.dest { background: var(--accent); }
+  .mini-map .dot.lot { background: var(--avail-fg); }
+  .mini-map .dot-label { font-size: 12px; color: var(--text-secondary); }
+  .mini-map .dash-line {
+    flex: 1;
+    height: 2px;
+    margin: 0 8px 20px;
+    background-image: linear-gradient(to right, var(--text-secondary) 0 6px, transparent 6px 11px);
+    background-repeat: repeat-x;
+    background-size: 11px 2px;
+  }
+  .walk-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .walk-row svg { opacity: .75; }
+
+  /* 상세 화면 */
+  .detail-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 6px 0 6px; }
+  .detail-title-row h2 { font-size: 22px; font-weight: 800; margin: 0; }
+  .sync-row { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; margin-bottom: 22px; }
+
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 4px 16px;
+    margin-bottom: 16px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .k { color: var(--text-secondary); }
+  .info-row .v { font-weight: 700; }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin: 0 0 10px 2px;
+  }
+
+  .toast {
+    position: absolute;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--surface-alt);
+    color: var(--text-primary);
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+    white-space: nowrap;
+    z-index: 10;
+    border: 1px solid var(--border);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .hint {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 18px;
+  }
+
+  /* 설정 팝업 */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--overlay);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+    padding: 0 28px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-card {
+    width: 100%;
+    max-width: 300px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 22px 20px 24px;
+    animation: modalIn 160ms ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .modal-header .title { font-size: 17px; font-weight: 800; }
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .modal-close:active { background: var(--border); }
+
+  .modal-section { margin-bottom: 18px; }
+  .modal-section:last-child { margin-bottom: 0; }
+  .modal-section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin: 0 0 8px 2px;
+  }
+
+  .segmented {
+    display: flex;
+    background: var(--surface-alt);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+  }
+  .segmented button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 8px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .segmented button.active {
+    background: var(--accent);
+    color: #ffffff;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-wrap">
+  <div class="phone" id="phone">
+
+    <!-- 화면 1: 홈 -->
+    <section class="screen active" id="screen-home">
+      <div class="safe-top"></div>
+      <div class="content">
+        <h1 class="app-title" id="app-title"></h1>
+        <div class="search-bar" onclick="goTo('search')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <span id="home-search-placeholder"></span>
+        </div>
+        <div class="section-label" id="home-section-label"></div>
+        <div id="home-list"></div>
+      </div>
+    </section>
+
+    <!-- 화면 2: 검색 -->
+    <section class="screen" id="screen-search">
+      <div class="safe-top"></div>
+      <div class="topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span style="font-size:16px;font-weight:700;" id="search-topbar-title"></span>
+      </div>
+      <div class="content">
+        <div class="search-input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="search-input" type="text" onkeydown="if(event.key==='Enter') doSearch()" />
+        </div>
+        <div class="section-label" style="margin-top:20px;font-size:13px;color:var(--text-secondary);" id="recommended-label"></div>
+        <div class="chip-row" id="chip-row"></div>
+        <button class="primary-btn" id="search-submit-btn" onclick="doSearch()"></button>
+      </div>
+    </section>
+
+    <!-- 화면 3: 검색 결과 (목업 재현) -->
+    <section class="screen" id="screen-result">
+      <div class="safe-top"></div>
+      <div class="topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
+      <div class="content">
+        <div class="eta-row">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 18-9-4-9 4 9-18z"/></svg>
+          <span id="eta-text"></span>
+        </div>
+        <div class="place-name" id="result-place-name"></div>
+        <div id="result-nearest"></div>
+        <div id="result-rest"></div>
+      </div>
+    </section>
+
+    <!-- 화면 4: 상세 정보 -->
+    <section class="screen" id="screen-detail">
+      <div class="safe-top"></div>
+      <div class="topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
+      <div class="content" id="detail-content"></div>
+    </section>
+
+    <!-- 설정 버튼 (모든 화면에서 접근 가능) -->
+    <button class="settings-btn" onclick="openSettings()" aria-label="Settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+
+    <!-- 설정 팝업 -->
+    <div class="modal-overlay" id="settings-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="title" id="settings-title"></span>
+          <button class="modal-close" onclick="closeSettings()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="modal-section">
+          <p class="modal-section-label" id="theme-section-label"></p>
+          <div class="segmented">
+            <button id="theme-btn-light" onclick="setTheme('light')"></button>
+            <button id="theme-btn-dark" onclick="setTheme('dark')"></button>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <p class="modal-section-label" id="lang-section-label"></p>
+          <div class="segmented">
+            <button id="lang-btn-ko" onclick="setLang('ko')"></button>
+            <button id="lang-btn-en" onclick="setLang('en')"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// i18n 사전
+// ---------------------------------------------------------------------
+const T = {
+  ko: {
+    appTitle: '대구 주차 도우미',
+    homeSearchPlaceholder: '목적지를 입력하세요',
+    homeSectionLabel: '현재 위치 주변 주차장',
+    searchTopbarTitle: '목적지 검색',
+    searchInputPlaceholder: '건물명, 지역명으로 검색',
+    recommendedLabel: '추천 목적지',
+    searchButton: '검색',
+    basicInfoTitle: '기본 정보',
+    availableTotalLabel: '여유 차석 / 전체',
+    hoursLabel: '운영시간',
+    distanceLabel: '거리',
+    feeTitle: '요금',
+    feeBasicLabel: '기본',
+    zoneTitle: '전용 구역',
+    evLabel: '전기차 충전 구역',
+    disabledLabel: '장애인 전용 구역',
+    navigateButton: '길찾기',
+    navigateToast: '외부 내비게이션 연동은 추후 구현됩니다',
+    prototypeHint: '↑ 프로토타입에서는 토스트만 표시됩니다',
+    settingsTitle: '설정',
+    themeSectionLabel: '화면 모드',
+    themeLight: '라이트 모드',
+    themeDark: '다크 모드',
+    langSectionLabel: '언어 설정',
+    langKo: '한국어',
+    langEn: 'English',
+    unitM: 'm',
+  },
+  en: {
+    appTitle: 'Daegu Parking Helper',
+    homeSearchPlaceholder: 'Enter a destination',
+    homeSectionLabel: 'Parking near current location',
+    searchTopbarTitle: 'Search destination',
+    searchInputPlaceholder: 'Search by building or area name',
+    recommendedLabel: 'Suggested destinations',
+    searchButton: 'Search',
+    basicInfoTitle: 'Basic info',
+    availableTotalLabel: 'Available / total spots',
+    hoursLabel: 'Hours',
+    distanceLabel: 'Distance',
+    feeTitle: 'Fee',
+    feeBasicLabel: 'Base',
+    zoneTitle: 'Dedicated zones',
+    evLabel: 'EV charging spots',
+    disabledLabel: 'Accessible spots',
+    navigateButton: 'Directions',
+    navigateToast: 'External navigation integration coming soon',
+    prototypeHint: '↑ This prototype only shows a toast message',
+    settingsTitle: 'Settings',
+    themeSectionLabel: 'Appearance',
+    themeLight: 'Light mode',
+    themeDark: 'Dark mode',
+    langSectionLabel: 'Language',
+    langKo: '한국어',
+    langEn: 'English',
+    unitM: 'm',
+  }
+};
+
+const CONGESTION = {
+  ko: { available: '여유', normal: '보통', crowded: '혼잡', full: '만차', unsupported: '정보없음' },
+  en: { available: 'Available', normal: 'Moderate', crowded: 'Crowded', full: 'Full', unsupported: 'Unknown' }
+};
+
+const SUGGESTIONS = ['동성로', '동대구역', '수성못', '서문시장', '약전골목'];
+
+// ---------------------------------------------------------------------
+// 상태
+// ---------------------------------------------------------------------
+const state = {
+  theme: 'dark',
+  lang: 'ko',
+  lastQuery: '동성로',
+  currentDetailId: null,
+};
+
+function t(key) { return T[state.lang][key]; }
+
+function formatMoney(amount) {
+  return state.lang === 'en'
+    ? '₩' + amount.toLocaleString('en-US')
+    : amount.toLocaleString('ko-KR') + '원';
+}
+
+function feeShortLabel(fee) {
+  return state.lang === 'en'
+    ? `First ${fee.baseMin} min ${formatMoney(fee.baseFee)}`
+    : `최초 ${fee.baseMin}분 ${formatMoney(fee.baseFee)}`;
+}
+
+function feeFullLabel(fee) {
+  return state.lang === 'en'
+    ? `First ${fee.baseMin} min ${formatMoney(fee.baseFee)} · +${formatMoney(fee.addFee)} every ${fee.addMin} min`
+    : `최초 ${fee.baseMin}분 ${formatMoney(fee.baseFee)} · 이후 ${fee.addMin}분마다 ${formatMoney(fee.addFee)}`;
+}
+
+function distancePrefixLabel(key) {
+  if (key === 'home') return state.lang === 'en' ? 'From current location' : '현재 위치에서';
+  return state.lang === 'en' ? 'From destination' : '목적지에서';
+}
+
+function walkLabel(min, m) {
+  return state.lang === 'en'
+    ? `${min} min walk · ${m}m to the right`
+    : `도보 ${min}분 · 우측 방향으로 ${m}m`;
+}
+
+function etaLabel() {
+  return state.lang === 'en' ? 'Arriving 14:32 (in 18 min)' : '도착 예정 14:32 (18분 후)';
+}
+
+function placeNameFor(query) {
+  return state.lang === 'en' ? `Near ${query}` : `${query} 상점가 부근`;
+}
+
+function syncedLabel(min) {
+  if (state.lang === 'en') {
+    return min < 60 ? `Updated ${min} min ago` : `Updated ${Math.round(min / 60)} hr ago`;
+  }
+  return min < 60 ? `최근 갱신: ${min}분 전` : `최근 갱신: ${Math.round(min / 60)}시간 전`;
+}
+
+function unsupportedRealtimeLabel() {
+  return state.lang === 'en' ? 'Realtime data unavailable · Basic info only' : '실시간 정보 미지원 · 기본 정보 제공';
+}
+
+// ---------------------------------------------------------------------
+// 데이터 (PRD 4장 데이터 모델 예시를 그대로 반영한 목(mock) 데이터)
+// syncedAgoMin: 마지막 갱신으로부터 지난 분(分) — 언어별로 "N분 전"/"N min ago"로 포맷
+// ---------------------------------------------------------------------
+function fee(baseMin, baseFee, addMin, addFee) {
+  return { baseMin, baseFee, addMin, addFee };
+}
+
+const homeLots = [
+  { id:'dgu-pub-004', name:'동성로 공영주차장', distanceM:240, available:12, total:86, congestion:'available',
+    fee: fee(30,1000,10,500), hours:'24시간', ev:4, disabled:3, syncedAgoMin:3 },
+  { id:'dgu-pub-011', name:'국채보상공원 주차장', distanceM:410, available:5, total:60, congestion:'normal',
+    fee: fee(30,1500,10,600), hours:'06:00 ~ 24:00', ev:2, disabled:2, syncedAgoMin:6 },
+  { id:'dgu-priv-021', name:'약전골목 민영주차장', distanceM:520, available:0, total:34, congestion:'crowded',
+    fee: fee(60,2000,60,2000), hours:'09:00 ~ 22:00', ev:0, disabled:1, syncedAgoMin:12 },
+  { id:'dgu-priv-034', name:'중앙로 지하주차장', distanceM:680, available:3, total:120, congestion:'available',
+    fee: fee(30,1000,15,500), hours:'24시간', ev:6, disabled:4, syncedAgoMin:300, realtime:false },
+];
+
+const destinationLots = [
+  { id:'dgu-pub-004', name:'동성로공영주차장', distanceM:120, available:18, total:86, congestion:'available',
+    fee: fee(30,1000,10,500), hours:'24시간', ev:4, disabled:3, syncedAgoMin:2, walkMin:2 },
+  { id:'dgu-pub-011', name:'국채보상공원 주차장', distanceM:280, available:6, total:60, congestion:'normal',
+    fee: fee(30,1500,10,600), hours:'06:00 ~ 24:00', ev:2, disabled:2, syncedAgoMin:6 },
+  { id:'dgu-priv-021', name:'약전골목 민영주차장', distanceM:340, available:0, total:34, congestion:'crowded',
+    fee: fee(60,2000,60,2000), hours:'09:00 ~ 22:00', ev:0, disabled:1, syncedAgoMin:15 },
+  { id:'dgu-priv-045', name:'서문시장 공영주차타워', distanceM:410, available:22, total:210, congestion:'available',
+    fee: fee(30,1000,10,500), hours:'24시간', ev:8, disabled:5, syncedAgoMin:4 },
+  { id:'dgu-priv-052', name:'중앙파출소 부설주차장', distanceM:470, available:1, total:15, congestion:'full',
+    fee: fee(60,3000,30,1000), hours:'09:00 ~ 21:00', ev:0, disabled:0, syncedAgoMin:120, realtime:false },
+];
+
+function findLot(id) {
+  return homeLots.find(l => l.id === id) || destinationLots.find(l => l.id === id);
+}
+
+// ---------------------------------------------------------------------
+// 화면 전환 (뒤로가기 스택 포함)
+// ---------------------------------------------------------------------
+let historyStack = ['home'];
+
+function goTo(screen, opts) {
+  opts = opts || {};
+  if (opts.replace) { historyStack[historyStack.length - 1] = screen; }
+  else { historyStack.push(screen); }
+  render(screen);
+}
+
+function goBack() {
+  if (historyStack.length <= 1) return;
+  historyStack.pop();
+  render(historyStack[historyStack.length - 1]);
+}
+
+function render(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + screen);
+  if (el) { el.classList.add('active'); el.scrollTop = 0; }
+}
+
+function lotCardHtml(lot, prefixKey) {
+  return `
+    <div class="lot-card" onclick="openDetail('${lot.id}')">
+      <div class="lot-main">
+        <p class="lot-name">${lot.name}</p>
+        <p class="lot-sub">${distancePrefixLabel(prefixKey)} ${lot.distanceM}${t('unitM')} · ${feeShortLabel(lot.fee)}</p>
+      </div>
+      <span class="badge ${lot.congestion}">${CONGESTION[state.lang][lot.congestion]}</span>
+    </div>`;
+}
+
+// ---------------------------------------------------------------------
+// 화면 1: 홈
+// ---------------------------------------------------------------------
+function renderHome() {
+  document.getElementById('home-list').innerHTML =
+    homeLots.map(l => lotCardHtml(l, 'home')).join('');
+}
+
+// ---------------------------------------------------------------------
+// 화면 2: 검색
+// ---------------------------------------------------------------------
+function renderSearchScreen() {
+  document.getElementById('chip-row').innerHTML =
+    SUGGESTIONS.map(s => `<span class="chip" onclick="doSearch('${s}')">${s}</span>`).join('');
+}
+
+function doSearch(presetQuery) {
+  const query = presetQuery || document.getElementById('search-input').value.trim();
+  if (!query) return;
+  state.lastQuery = query;
+  document.getElementById('search-input').value = '';
+  renderResultScreen();
+  goTo('result', { replace: false });
+}
+
+// ---------------------------------------------------------------------
+// 화면 3: 검색 결과 (목업 그대로)
+// ---------------------------------------------------------------------
+function renderResultScreen() {
+  document.getElementById('eta-text').textContent = etaLabel();
+  document.getElementById('result-place-name').textContent = placeNameFor(state.lastQuery);
+
+  const nearest = destinationLots[0];
+  const rest = destinationLots.slice(1);
+  const walkMin = nearest.walkMin || Math.ceil(nearest.distanceM / 80);
+
+  document.getElementById('result-nearest').innerHTML = `
+    <div class="nearest-card" onclick="openDetail('${nearest.id}')">
+      <div class="nearest-head">
+        <div>
+          <p class="lot-name">${nearest.name}</p>
+          <p class="lot-sub">${distancePrefixLabel('destination')} ${nearest.distanceM}${t('unitM')} · ${feeShortLabel(nearest.fee)}</p>
+        </div>
+        <span class="badge ${nearest.congestion}">${CONGESTION[state.lang][nearest.congestion]}</span>
+      </div>
+      <div class="mini-map">
+        <div class="dot-col"><div class="dot dest"></div><span class="dot-label">${state.lang === 'en' ? 'Destination' : '목적지'}</span></div>
+        <div class="dash-line"></div>
+        <div class="dot-col"><div class="dot lot"></div><span class="dot-label">${state.lang === 'en' ? 'Parking' : '주차장'}</span></div>
+      </div>
+      <div class="walk-row">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13" cy="4" r="2"/><path d="M15 22l-1-6-3-2 1-5-3 2-1-3 5-2 2 3h3"/></svg>
+        <span>${walkLabel(walkMin, nearest.distanceM)}</span>
+      </div>
+    </div>`;
+
+  document.getElementById('result-rest').innerHTML =
+    rest.map(l => lotCardHtml(l, 'destination')).join('');
+}
+
+// ---------------------------------------------------------------------
+// 화면 4: 상세 정보
+// ---------------------------------------------------------------------
+function openDetail(id) {
+  state.currentDetailId = id;
+  renderDetailContent(id);
+  goTo('detail');
+}
+
+function renderDetailContent(id) {
+  const lot = findLot(id);
+  if (!lot) return;
+  const syncedText = lot.realtime === false ? unsupportedRealtimeLabel() : syncedLabel(lot.syncedAgoMin);
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-title-row">
+      <h2>${lot.name}</h2>
+      <span class="badge ${lot.congestion}">${CONGESTION[state.lang][lot.congestion]}</span>
+    </div>
+    <div class="sync-row">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>${syncedText}</span>
+    </div>
+
+    <p class="card-title">${t('basicInfoTitle')}</p>
+    <div class="info-card">
+      <div class="info-row"><span class="k">${t('availableTotalLabel')}</span><span class="v">${lot.available} / ${lot.total}${state.lang === 'en' ? ' spots' : '면'}</span></div>
+      <div class="info-row"><span class="k">${t('hoursLabel')}</span><span class="v">${lot.hours}</span></div>
+      <div class="info-row"><span class="k">${t('distanceLabel')}</span><span class="v">${lot.distanceM}${t('unitM')}</span></div>
+    </div>
+
+    <p class="card-title">${t('feeTitle')}</p>
+    <div class="info-card">
+      <div class="info-row"><span class="k">${t('feeBasicLabel')}</span><span class="v" style="text-align:right;max-width:60%;">${feeFullLabel(lot.fee)}</span></div>
+    </div>
+
+    <p class="card-title">${t('zoneTitle')}</p>
+    <div class="info-card">
+      <div class="info-row"><span class="k">${t('evLabel')}</span><span class="v">${lot.ev}${state.lang === 'en' ? ' spots' : '면'}</span></div>
+      <div class="info-row"><span class="k">${t('disabledLabel')}</span><span class="v">${lot.disabled}${state.lang === 'en' ? ' spots' : '면'}</span></div>
+    </div>
+
+    <button class="primary-btn" onclick="showToast(t('navigateToast'))">${t('navigateButton')}</button>
+    <p class="hint">${t('prototypeHint')}</p>
+  `;
+}
+
+// ---------------------------------------------------------------------
+// 토스트
+// ---------------------------------------------------------------------
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ---------------------------------------------------------------------
+// 설정 팝업 (화면 모드 / 언어)
+// ---------------------------------------------------------------------
+function openSettings() {
+  updateSettingsUI();
+  document.getElementById('settings-overlay').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('show');
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  document.body.classList.toggle('light', theme === 'light');
+  updateSettingsUI();
+}
+
+function setLang(lang) {
+  state.lang = lang;
+  document.getElementById('html-root').setAttribute('lang', lang);
+  applyStaticTexts();
+  updateSettingsUI();
+  refreshCurrentContent();
+}
+
+function updateSettingsUI() {
+  document.getElementById('settings-title').textContent = t('settingsTitle');
+  document.getElementById('theme-section-label').textContent = t('themeSectionLabel');
+  document.getElementById('lang-section-label').textContent = t('langSectionLabel');
+
+  const themeLight = document.getElementById('theme-btn-light');
+  const themeDark = document.getElementById('theme-btn-dark');
+  themeLight.textContent = t('themeLight');
+  themeDark.textContent = t('themeDark');
+  themeLight.classList.toggle('active', state.theme === 'light');
+  themeDark.classList.toggle('active', state.theme === 'dark');
+
+  const langKo = document.getElementById('lang-btn-ko');
+  const langEn = document.getElementById('lang-btn-en');
+  langKo.textContent = t('langKo');
+  langEn.textContent = t('langEn');
+  langKo.classList.toggle('active', state.lang === 'ko');
+  langEn.classList.toggle('active', state.lang === 'en');
+}
+
+// ---------------------------------------------------------------------
+// 정적 텍스트(화면에 항상 보이는 라벨) 갱신
+// ---------------------------------------------------------------------
+function applyStaticTexts() {
+  document.getElementById('app-title').textContent = t('appTitle');
+  document.getElementById('home-search-placeholder').textContent = t('homeSearchPlaceholder');
+  document.getElementById('home-section-label').textContent = t('homeSectionLabel');
+  document.getElementById('search-topbar-title').textContent = t('searchTopbarTitle');
+  document.getElementById('search-input').placeholder = t('searchInputPlaceholder');
+  document.getElementById('recommended-label').textContent = t('recommendedLabel');
+  document.getElementById('search-submit-btn').textContent = t('searchButton');
+  document.title = t('appTitle');
+}
+
+// 언어가 바뀌었을 때, 지금 보이고 있는 화면의 동적 콘텐츠도 다시 그림
+function refreshCurrentContent() {
+  renderHome();
+  renderSearchScreen();
+  const current = historyStack[historyStack.length - 1];
+  if (current === 'result') renderResultScreen();
+  if (current === 'detail' && state.currentDetailId) renderDetailContent(state.currentDetailId);
+}
+
+// ---------------------------------------------------------------------
+// 초기화
+// ---------------------------------------------------------------------
+applyStaticTexts();
+renderHome();
+renderSearchScreen();
+renderResultScreen();
+updateSettingsUI();
+</script>
+</body>
+</html>
